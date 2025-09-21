@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz com Bloqueio após Erro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #1e90ff, #0077b6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .quiz-container {
+      max-width: 700px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .question {
+      background-color: #33aaff;
+      padding: 25px;
+      border-radius: 16px;
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    .timer {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #ffe066;
+    }
+
+    .answers {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .answer {
+      border: none;
+      padding: 22px;
+      width: 45%;
+      min-width: 140px;
+      font-size: 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.3s;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+
+    /* Cores dos botões */
+    .answer:nth-child(1) {
+      background-color: #b9f20d;
+    } /* 1899 */
+    .answer:nth-child(2) {
+      background-color: #65e617;
+    } /* 1908 (correta) */
+    .answer:nth-child(3) {
+      background-color: #d46f2c;
+    } /* 1910 */
+    .answer:nth-child(4) {
+      background-color: #b22222;
+    } /* 1800 */
+    .answer:nth-child(5) {
+      background-color: #00e5ff;
+    } /* 1937 */
+
+    .answer:hover {
+      transform: scale(1.05);
+      filter: brightness(1.1);
+    }
+
+    @media (max-width: 768px) {
+      .answer {
+        width: 100%;
+      }
+    }
+
+    /* Caixa de dica e senha */
+    #dicaContainer {
+      background-color: #1e90ff;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+      display: none; /* começa oculto */
+    }
+
+    #dicaContainer p {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    #senhaInput {
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      width: 80%;
+      max-width: 300px;
+    }
+
+    #btnVerificar {
+      padding: 12px 25px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background-color 0.3s;
+    }
+
+    #btnVerificar:hover {
+      background-color: #218838;
+    }
+
+    #mensagemSenha {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <div class="question">Qual ano surgiu o colégio Silveira da Motta?</div>
+
+    <div class="timer" id="timer">Tempo: 30s</div>
+
+    <div class="answers">
+      <button class="answer">1899</button>
+      <button class="answer">1908</button> <!-- Resposta correta -->
+      <button class="answer">1910</button>
+      <button class="answer">1800</button>
+      <button class="answer">1937</button>
+    </div>
+
+    <div id="dicaContainer">
+      <p>✨ Dica: Eu estou embaixo do lugar onde você estuda.</p>
+      <input type="text" id="senhaInput" placeholder="Digite a senha aqui" autocomplete="off" />
+      <button id="btnVerificar">Verificar</button>
+      <div id="mensagemSenha"></div>
+    </div>
+  </div>
+
+  <script>
+    let timeLeft = 30;
+    const timerEl = document.getElementById("timer");
+    const answers = document.querySelectorAll(".answer");
+    const dicaContainer = document.getElementById("dicaContainer");
+    const senhaInput = document.getElementById("senhaInput");
+    const btnVerificar = document.getElementById("btnVerificar");
+    const mensagemSenha = document.getElementById("mensagemSenha");
+
+    let countdown;
+    let bloqueado = false;
+    let bloqueioSegundos = 0;
+
+    // Função para bloquear botões
+    function bloquearBotoes() {
+      answers.forEach((btn) => {
+        btn.disabled = true;
+        btn.style.opacity = "0.6";
+        btn.style.cursor = "not-allowed";
+      });
+    }
+
+    // Função para liberar botões
+    function liberarBotoes() {
+      answers.forEach((btn) => {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+        btn.style.backgroundColor = ""; // limpa cor do clique anterior
+      });
+    }
+
+    // Iniciar cronômetro principal
+    function iniciarContagem() {
+      countdown = setInterval(() => {
+        if (bloqueado) return; // não diminui se bloqueado
+
+        timeLeft--;
+        timerEl.textContent = `Tempo: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          timerEl.textContent = "⏰ Tempo esgotado!";
+          bloquearBotoes();
+        }
+      }, 1000);
+    }
+
+    iniciarContagem();
+
+    // Resposta correta
+    const respostaCorreta = "1908";
+    const senhaCorreta = "Matemática";
+
+    answers.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (bloqueado) return; // bloqueado não pode clicar
+
+        if (btn.textContent === respostaCorreta) {
+          clearInterval(countdown);
+          timerEl.textContent = "✅ Resposta correta!";
+          btn.style.backgroundColor = "#38d970";
+          bloquearBotoes();
+          dicaContainer.style.display = "block";
+        } else {
+          // Errou: bloqueia por 10 segundos
+          bloqueado = true;
+          bloqueioSegundos = 10;
+          bloquearBotoes();
+          timerEl.textContent = `❌ Errado! Tente novamente em ${bloqueioSegundos}s`;
+
+          // Começa contagem regressiva de bloqueio
+          const bloqueioInterval = setInterval(() => {
+            bloqueioSegundos--;
+            timerEl.textContent = `❌ Errado! Tente novamente em ${bloqueioSegundos}s`;
+
+            if (bloqueioSegundos <= 0) {
+              clearInterval(bloqueioInterval);
+              bloqueado = false;
+              liberarBotoes();
+              timerEl.textContent = `Tempo: ${timeLeft}s`;
+            }
+          }, 1000);
+        }
+      });
+    });
+
+    btnVerificar.addEventListener("click", () => {
+      const senhaDigitada = senhaInput.value.trim();
+      if (senhaDigitada === "") {
+        mensagemSenha.textContent = "Por favor, digite a senha.";
+        mensagemSenha.style.color = "#ffc107";
+        return;
+      }
+
+      if (senhaDigitada.toLowerCase() === senhaCorreta.toLowerCase()) {
+        mensagemSenha.textContent = "🎉 Parabéns! Senha correta.";
+        mensagemSenha.style.color = "#38d970";
+        senhaInput.disabled = true;
+        btnVerificar.disabled = true;
+      } else {
+        mensagemSenha.textContent = "❌ Senha incorreta. Tente novamente.";
+        mensagemSenha.style.color = "#d9534f";
+      }
+    });
+
+    senhaInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        btnVerificar.click();
+      }
+    });
+  </script>
+</body>
+</html>
