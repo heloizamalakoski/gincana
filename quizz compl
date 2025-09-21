@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Gincana</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(to right, #007bff, #00c6ff);
+      margin: 0;
+    }
+    .quiz-container {
+      text-align: center;
+      background: #1E90FF;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      width: 700px;
+    }
+    .question {
+      font-size: 22px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 20px;
+    }
+    .answers button {
+      display: inline-block;
+      margin: 10px;
+      padding: 15px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .answers button:hover {
+      transform: scale(1.1);
+    }
+    .timer {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 15px;
+      color: yellow;
+    }
+    .disabled {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .hint-box {
+      margin-top: 20px;
+      display: none;
+      background: #f1f1f1;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .hint-box input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 80%;
+    }
+    .hint-box button {
+      margin-top: 10px;
+      padding: 8px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <div class="question" id="question">Pergunta aqui</div>
+    <div class="answers" id="answers"></div>
+    <div class="timer" id="timer">Tempo: 30s</div>
+    <div class="hint-box" id="hintBox">
+      <p id="hintText">Dica: Responda a pergunta bônus!</p>
+      <input type="text" id="hintInput" placeholder="Digite sua resposta aqui...">
+      <button onclick="checkHint()">Enviar</button>
+      <p id="hintFeedback"></p>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+      { question: "Qual é o maior planeta do Sistema Solar?", answers: ["Terra", "Marte", "Júpiter", "Saturno"], correct: "Júpiter", hint: "Aqui você descansa quando a aula começa", senha: "Matemática" },
+      { question: "Qual é a capital da França?", answers: ["Roma", "Paris", "Londres", "Berlim"], correct: "Paris", hint: "Onde a bola corre e os pés nunca param", senha: "Lápis" },
+      { question: "Quem foi o primeiro presidente do Brasil?", answers: ["Getúlio Vargas", "Marechal Deodoro", "Dom Pedro II", "Floriano Peixoto"], correct: "Marechal Deodoro", hint: "O lugar onde a fome encontra sua solução", senha: "Lousa" },
+      { question: "Qual é o metal cujo símbolo químico é 'Fe'?", answers: ["Ferro", "Fósforo", "Flúor", "Cobre"], correct: "Ferro", hint: "Aqui se tomam decisões importantes, mas os alunos só entram com permissão", senha: "Estojo" },
+      { question: "Quantos segundos existem em uma hora?", answers: ["60", "600", "3600", "7200"], correct: "3600", hint: "Lugar silencioso, cheio de mundos diferentes em cada página", senha: "Borracha" },
+      { question: "Qual planeta é conhecido como 'Planeta Vermelho'?", answers: ["Vênus", "Marte", "Saturno", "Mercúrio"], correct: "Marte", hint: "Eu te levo para cima ou para baixo, mas nunca saio do lugar", senha: "Escada" },
+      { question: "Qual é o nome do processo pelo qual as plantas produzem seu alimento?", answers: ["Respiração", "Digestão", "Fotossíntese", "Fermentação"], correct: "Fotossíntese", hint: "O caminho final que leva para a liberdade", senha: "Régua" },
+      { question: "Qual é a moeda oficial dos Estados Unidos?", answers: ["Euro", "Peso", "Dólar", "Libra"], correct: "Dólar", hint: "Onde os mestres planejam suas aulas e descansam entre um sinal e outro", senha: "Mochila" },
+      { question: "Qual é a língua oficial da China?", answers: ["Mandarim", "Cantonês", "Japonês", "Coreano"], correct: "Mandarim", hint: "Aqui a ciência ganha vida e os experimentos fazem barulho", senha: "Bola" },
+      { question: "Qual ano surgiu o colégio Silveira da Motta?", answers: ["1899", "1908", "1910", "1937"], correct: "1908", hint: "Onde os cliques transformam ideias em ação e as telas brilham sem parar", senha: "Alunos" }
+    ];
+
+    let currentQuestion = 0;
+    let timer;
+    let timeLeft = 30;
+    let lock = false;
+
+    const questionEl = document.getElementById("question");
+    const answersEl = document.getElementById("answers");
+    const timerEl = document.getElementById("timer");
+    const hintBox = document.getElementById("hintBox");
+    const hintInput = document.getElementById("hintInput");
+    const hintFeedback = document.getElementById("hintFeedback");
+    const hintText = document.getElementById("hintText");
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 30;
+      timerEl.textContent = `Tempo: ${timeLeft}s`;
+      timer = setInterval(updateTimer, 1000);
+      lock = false;
+      hintBox.style.display = "none";
+      hintFeedback.textContent = "";
+      hintInput.value = "";
+
+      const q = quizData[currentQuestion];
+      questionEl.textContent = q.question;
+      answersEl.innerHTML = "";
+
+      q.answers.forEach(answer => {
+        const btn = document.createElement("button");
+        btn.textContent = answer;
+        btn.style.background = getRandomColor();
+        btn.onclick = () => checkAnswer(answer);
+        answersEl.appendChild(btn);
+      });
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      timerEl.textContent = `Tempo: ${timeLeft}s`;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        restartQuiz();
+      }
+    }
+
+    function checkAnswer(answer) {
+      if (lock) return;
+
+      if (answer === quizData[currentQuestion].correct) {
+        alert("✅ Resposta correta!");
+        clearInterval(timer); // parar o tempo quando acertar
+        showHintBox();
+      } else {
+        alert("❌ Resposta errada! Espere 10 segundos para tentar de novo.");
+        lock = true;
+        answersEl.classList.add("disabled");
+        setTimeout(() => {
+          lock = false;
+          answersEl.classList.remove("disabled");
+        }, 10000);
+      }
+    }
+
+    function showHintBox() {
+      const q = quizData[currentQuestion];
+      hintText.textContent = `Dica: ${q.hint}`;
+      hintBox.style.display = "block";
+    }
+
+    function checkHint() {
+      const q = quizData[currentQuestion];
+      const userAnswer = hintInput.value.trim();
+      if (userAnswer.length > 0) {
+        if (userAnswer.toLowerCase() === q.senha.toLowerCase()) {
+          hintFeedback.textContent = `✅ Senha correta: ${q.senha}`;
+        } else {
+          hintFeedback.textContent = "❌ Senha incorreta!";
+        }
+        setTimeout(() => {
+          nextQuestion();
+        }, 2000);
+      } else {
+        hintFeedback.textContent = "⚠️ Digite uma resposta!";
+      }
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion < quizData.length) {
+        loadQuestion();
+      } else {
+        questionEl.textContent = "Fim do Quiz!";
+        answersEl.innerHTML = "";
+        timerEl.textContent = "";
+        hintBox.style.display = "none";
+      }
+    }
+
+    function restartQuiz() {
+      alert("⏰ Tempo esgotado! O quiz será reiniciado.");
+      currentQuestion = 0;
+      loadQuestion();
+    }
+
+    function getRandomColor() {
+      const colors = ["#7FFF00", "#32CD32", "#FF8C00", "#FF4500", "#00FFFF"];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
